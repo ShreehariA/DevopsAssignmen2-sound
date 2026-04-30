@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   parameters {
-    booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: false, description: 'If true, run kubectl deploy stage (requires kubectl configured on Jenkins).')
+    booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: true, description: 'If true, run kubectl deploy stage (requires kubeconfig credential).')
   }
 
   environment {
@@ -97,11 +97,27 @@ pipeline {
 
     stage('Deploy to Kubernetes (rolling)') {
       when { expression { return params.DEPLOY_TO_K8S } }
+      agent {
+        docker {
+          image 'bitnami/kubectl:latest'
+          reuseNode true
+        }
+      }
       steps {
-        sh '''
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/rolling-deployment.yaml -f k8s/service.yaml
-        '''
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+            export KUBECONFIG="$KUBECONFIG_FILE"
+            kubectl version --client=true
+
+            kubectl apply -f k8s/namespace.yaml
+            kubectl apply -f k8s/rolling-deployment.yaml -f k8s/service.yaml
+
+            # Ensure the deployment actually uses the image built/pushed in this pipeline run.
+            kubectl -n aceest set image deployment/aceest-web web=${IMAGE_NAME}:${IMAGE_TAG}
+            kubectl -n aceest rollout status deployment/aceest-web
+            kubectl -n aceest get pods,svc
+          '''
+        }
       }
     }
   }
