@@ -35,7 +35,10 @@ pipeline {
       when { expression { return fileExists('sonar-project.properties') } }
       steps {
         withSonarQubeEnv('SonarQube') {
-          sh 'sonar-scanner'
+          script {
+            def scannerHome = tool 'SonarQube'
+            sh "${scannerHome}/bin/sonar-scanner"
+          }
         }
       }
     }
