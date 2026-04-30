@@ -111,7 +111,10 @@ pipeline {
           usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_TOKEN')
         ]) {
           sh '''
-            export KUBECONFIG="$KUBECONFIG_FILE"
+            # Jenkins secret files are mounted read-only. Copy kubeconfig to a writable location first.
+            cp "$KUBECONFIG_FILE" kubeconfig.writable
+            chmod 600 kubeconfig.writable
+            export KUBECONFIG="$PWD/kubeconfig.writable"
             kubectl version --client=true
 
             # Jenkins runs in Docker; kubeconfigs that point to 127.0.0.1 won't work inside the container.
