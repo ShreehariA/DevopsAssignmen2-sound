@@ -55,7 +55,7 @@ pipeline {
       steps {
         sh '''
           docker rm -f aceest_test || true
-          docker run -d --name aceest_test -p 18000:8000 -e APP_VERSION=${IMAGE_TAG} ${IMAGE_NAME}:${IMAGE_TAG}
+          docker run -d --name aceest_test -p 18000:8000 -e APP_VERSION=${IMAGE_TAG} -e DATABASE_PATH=/tmp/aceest_fitness.db ${IMAGE_NAME}:${IMAGE_TAG}
           sleep 2
           python3 -c "import json,urllib.request; print(json.load(urllib.request.urlopen('http://127.0.0.1:18000/health')))"
           docker rm -f aceest_test

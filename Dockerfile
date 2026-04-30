@@ -11,6 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY aceest_fitness_web aceest_fitness_web
 COPY wsgi.py .
 
+RUN mkdir -p /data
+
 ENV APP_VERSION="0.1.0" \
     DATABASE_PATH="/data/aceest_fitness.db"
 
