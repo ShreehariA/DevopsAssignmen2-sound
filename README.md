@@ -308,31 +308,28 @@ You must be able to show at least two tags, for example `1.0` and `1.1`.
 
 ## 9) G) Jenkins: open the portal, prove automation, and screenshot the right things
 
-### 9.0 One required edit (so Jenkins pushes to YOUR Docker Hub)
+### 9.0 One required edit (so Jenkins pushes to the correct Docker Hub repo)
 
 Before running Jenkins, update the image name in `Jenkinsfile`:
 
-- Find `IMAGE_NAME = "your-dockerhub-username/aceest-fitness"`
-- Replace it with your real Docker Hub repo, for example:
-  - `IMAGE_NAME = "DOCKERHUB_USERNAME/aceest-fitness"`
+- Find `IMAGE_NAME = ".../aceest-fitness"`
+- Replace it with the correct Docker Hub repo you are expected to publish to (example):
+  - `IMAGE_NAME = "some-dockerhub-user/aceest-fitness"`
 
-You do **not** need to change the build command itself:
+You do **not** need to change the build/smoke-test logic; the pipeline handles tagging and health checks automatically.
 
-```bash
-docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
-```
-
-If you want Jenkins to deploy to Kubernetes using Docker Hub images, also replace the placeholder image names inside:
-- `k8s/rolling-deployment.yaml`
-- `k8s/bluegreen.yaml`
-- `k8s/canary.yaml`
-
-If you deploy to Minikube using local images (the Minikube `docker-env` method), you can leave the Kubernetes YAML placeholders as-is and use `kubectl set image ...` during your demo.
+If you want Jenkins to deploy to Kubernetes using Docker Hub images:
+- Ensure `k8s/rolling-deployment.yaml` uses `imagePullPolicy: Always` (already set in this repo) so `:latest` updates are pulled.
 
 ### 9.1 Start Jenkins
 
+For CI/CD in this project, Jenkins runs in Docker **with access to the host Docker engine** (so it can build/push images and run container smoke tests):
+
 ```bash
-docker run -d --name jenkins -p 8081:8080 -p 50000:50000 jenkins/jenkins:lts
+docker run -d --name jenkins \
+  -p 8081:8080 -p 50000:50000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  jenkins/jenkins:lts
 ```
 
 Get the one-time admin password (do not screenshot the password in clear text; blur it):
@@ -357,21 +354,48 @@ Open Jenkins: `http://127.0.0.1:8081`
    - Credentials Binding
    - SonarQube Scanner
 
-3) **Manage Jenkins → Credentials** → add a Docker Hub credential
+3) **Manage Jenkins → Credentials** → add a Docker Hub credential (for push)
    - **Kind**: username/password
    - **ID**: `dockerhub`  (this matches the `Jenkinsfile`)
+   - Username: Docker Hub username
+   - Password: Docker Hub **access token** (preferred) or password
 
-4) (Optional) **Manage Jenkins → System → SonarQube servers**
-   - name must be **`SonarQube`** to match the `Jenkinsfile`
+4) **Manage Jenkins → System → SonarQube servers**
+   - Add a server named **`SonarQube`** (must match the `Jenkinsfile`)
+   - Server URL: `http://host.docker.internal:9000` (SonarQube running on the host)
+   - Add an authentication token (Secret text credential)
 
-5) New Item → **Pipeline**
+5) **Manage Jenkins → Tools → SonarQube Scanner installations**
+   - Add an installation named **`SonarQube`**
+   - Enable “Install automatically” (downloads from Maven Central)
+
+6) **Kubernetes deploy setup (Minikube)** — required if you want Jenkins to deploy
+
+Jenkins deploys using a kubeconfig provided as a **Secret file** credential:
+
+- On the host machine, create a kubeconfig file for Jenkins:
+
+```bash
+kubectl config view --raw --minify --flatten > kubeconfig-jenkins.yaml
+```
+
+- In Jenkins: **Manage Jenkins → Credentials** → Add Credentials
+  - Kind: **Secret file**
+  - ID: **`kubeconfig`**
+  - File: upload `kubeconfig-jenkins.yaml`
+
+Notes:
+- Jenkins runs in Docker. Any kubeconfig that points to `127.0.0.1` will not work inside the container.
+- The pipeline corrects the Minikube server endpoint to `https://host.docker.internal:<port>` and sets `insecure-skip-tls-verify` at runtime for local Minikube TLS compatibility.
+
+7) New Item → **Pipeline**
 - Definition: *Pipeline script from SCM*
 - Git repo: your public GitHub repo
 - **Script path**:
   - if your repository root is this project folder, use: `Jenkinsfile`
   - if your repository root is a parent folder, use: `DevopsAssignmen2-sound/Jenkinsfile` (use whichever is true in your case)
 
-6) **Build Now** → open the build → open **Console Output**
+8) **Build Now** → open the build → open **Console Output**
 
 | Good | Bad |
 | --- | --- |
@@ -381,9 +405,13 @@ Open Jenkins: `http://127.0.0.1:8081`
 - Jenkins job page with a successful build in the left “Build History”
 - Console Output: top (shows it started) + bottom (shows SUCCESS)
 
-**Reality check (so you are not surprised):** Jenkins in Docker is great for screenshots, but the pipeline’s Kubernetes deploy step may not work *automatically* unless your Jenkins can access your `kubectl` context. That is common in coursework. A normal approach is:
-- prove app deployment in Minikube manually
-- prove automation in Jenkins for tests/scan/docker push
+**What the pipeline proves (high-value evidence):**
+- Pytest stage passes
+- SonarQube stage runs and uploads analysis
+- Docker build completes
+- Smoke test prints `/health` JSON from inside the container
+- Image push succeeds (tags include build number + `latest`)
+- Kubernetes deploy stage applies manifests and rolls out the updated image (if kubeconfig is configured)
 
 **Stop Jenkins (optional):**
 
@@ -434,3 +462,7 @@ Use this table as a **final marking checklist** before you submit.
 - A screenshot of a browser on `/` is *not* proof; use `/health` and/or the API calls.
 - Don’t post secrets. Blur tokens/passwords in all screenshots.
 - If Jenkins can’t run `kubectl` on your machine, you can still pass by proving **K8s in Minikube** and proving **Jenkins automation** separately (this README calls that out).
+
+## 13) Difficulties faced (brief summary)
+
+During setup, the most common blockers were environment and connectivity issues rather than application logic: tool availability inside Jenkins containers (Python/Docker/kubectl/sonar-scanner), Docker Hub tagging/permissions, and Minikube connectivity from Jenkins running in Docker (localhost vs host networking and TLS certificate hostname mismatches). These were mitigated by running tests in a Python build container, using Jenkins-managed SonarScanner tooling, making smoke tests container-internal and retry-based, tagging/pushing `latest` consistently, and supplying Kubernetes access via a kubeconfig credential while forcing a Docker-reachable Minikube API endpoint for local CI/CD demonstrations.
