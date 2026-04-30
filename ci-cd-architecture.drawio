@@ -1,0 +1,67 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="cicd" name="CI-CD Architecture">
+    <mxGraphModel dx="1973" dy="591" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dev" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;" value="Developer&#xa;(local changes)" vertex="1">
+          <mxGeometry height="70" width="180" x="-90" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="github" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef2ff;strokeColor=#3730a3;fontColor=#111827;" value="GitHub Repository&#xa;(version control, tags)" vertex="1">
+          <mxGeometry height="70" width="220" x="210" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="jenkins" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfeff;strokeColor=#155e75;fontColor=#111827;" value="Jenkins CI/CD&#xa;(Pipeline: Jenkinsfile)" vertex="1">
+          <mxGeometry height="90" width="240" x="540" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="nEoyoD2UiNHpXUo9WOKX-1" edge="1" parent="1" source="tests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="dockerbuild">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tests" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#166534;fontColor=#111827;" value="Stage: Pytest + Coverage&#xa;(quality checks)" vertex="1">
+          <mxGeometry height="70" width="240" x="540" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="sonarqube" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#9a3412;fontColor=#111827;" value="SonarQube Server&#xa;(static analysis + gate)" vertex="1">
+          <mxGeometry height="70" width="240" x="880" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="dockerbuild" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fefce8;strokeColor=#854d0e;fontColor=#111827;" value="Stage: Docker Build&#xa;(image tagged per build)" vertex="1">
+          <mxGeometry height="70" width="240" x="540" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="registry" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f8;strokeColor=#9d174d;fontColor=#111827;" value="Docker Hub Registry&#xa;(repo + version tags)" vertex="1">
+          <mxGeometry height="70" width="240" x="540" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;fontColor=#111827;" value="Kubernetes (Minikube)&#xa;Deployment strategies:&#xa;- Rolling&#xa;- Blue/Green&#xa;- Canary" vertex="1">
+          <mxGeometry height="120" width="240" x="540" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="service" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;" value="Service + Port-forward&#xa;(endpoint access)" vertex="1">
+          <mxGeometry height="70" width="240" x="900" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;" value="User / Marker&#xa;(curl /health, screenshots)" vertex="1">
+          <mxGeometry height="70" width="240" x="900" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="dev" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="github" value="push/commit/tag">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="github" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="jenkins" value="webhook/poll">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="jenkins" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="tests" value="run tests">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="tests" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="sonarqube" value="send analysis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="dockerbuild" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="registry" value="push tags">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="registry" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="k8s" value="deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="k8s" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="service" value="expose endpoint">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="service" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" target="user" value="verify + screenshots">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

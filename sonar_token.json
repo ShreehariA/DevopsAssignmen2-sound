@@ -1,0 +1,10 @@
+[{
+    "login":"admin",
+    "name":"aceest-local",
+    "token":"squ_0b55b021c7df50aacf5ee0412b4fd10c97707232",
+    "createdAt":"2026-04-30T06:28:17+0000",
+    "type":"USER_TOKEN"
+},
+{
+    "jenkins": "6e3f8fa849164742acaa3c7bed48c154"
+}]

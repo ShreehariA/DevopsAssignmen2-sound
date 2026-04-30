@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite
+*.sqlite3
+The code versions for DevOps Assignment/
+The code versions for DevOps Assignment.zip
+Introduction to DevOps- CI_CD Pipeline Assignment - 2 Version 1.1 2026 batch.docx

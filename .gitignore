@@ -1,0 +1,10 @@
+venv/
+.vscode
+DevopsAssignmen2-sound.zip
+.DS_Store
+.coverage
+*.pyc
+__pycache__/
+.scannerwork/
+minikube-darwin-arm64
+%s\n

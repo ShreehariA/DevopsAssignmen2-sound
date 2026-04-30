@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-web
+  namespace: aceest
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: aceest-web
+  template:
+    metadata:
+      labels:
+        app: aceest-web
+    spec:
+      containers:
+        - name: web
+          image: your-dockerhub-username/aceest-fitness:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_VERSION
+              value: "rolling-latest"
+            - name: DATABASE_PATH
+              value: "/data/aceest_fitness.db"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+      volumes:
+        - name: data
+          emptyDir: {}
