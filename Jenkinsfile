@@ -100,20 +100,38 @@ pipeline {
       agent {
         docker {
           image 'bitnami/kubectl:latest'
+          // Jenkins runs a keep-alive command (cat). Disable the image ENTRYPOINT so it behaves like a normal shell container.
+          args '--entrypoint='
           reuseNode true
         }
       }
       steps {
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+        withCredentials([
+          file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE'),
+          usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_TOKEN')
+        ]) {
           sh '''
             export KUBECONFIG="$KUBECONFIG_FILE"
             kubectl version --client=true
 
             kubectl apply -f k8s/namespace.yaml
+
+            # Allow the cluster to pull from Docker Hub (private repos need this).
+            # Creates/updates an imagePullSecret named dockerhub-regcred in the aceest namespace.
+            kubectl -n aceest create secret docker-registry dockerhub-regcred \
+              --docker-server="https://index.docker.io/v1/" \
+              --docker-username="$DOCKERHUB_USER" \
+              --docker-password="$DOCKERHUB_TOKEN" \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            # Ensure pods created in this namespace can use the registry credentials.
+            kubectl -n aceest patch serviceaccount default -p '{"imagePullSecrets":[{"name":"dockerhub-regcred"}]}' || true
+
             kubectl apply -f k8s/rolling-deployment.yaml -f k8s/service.yaml
 
-            # Ensure the deployment actually uses the image built/pushed in this pipeline run.
-            kubectl -n aceest set image deployment/aceest-web web=${IMAGE_NAME}:${IMAGE_TAG}
+            # Deploy the "latest" tag (guaranteed to exist if Push stage succeeded).
+            # This avoids ImagePullBackOff when a numeric tag was not pushed/visible.
+            kubectl -n aceest set image deployment/aceest-web web=${IMAGE_NAME}:latest
             kubectl -n aceest rollout status deployment/aceest-web
             kubectl -n aceest get pods,svc
           '''

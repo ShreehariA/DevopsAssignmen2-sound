@@ -21,7 +21,8 @@ spec:
       containers:
         - name: web
           image: your-dockerhub-username/aceest-fitness:latest
-          imagePullPolicy: IfNotPresent
+          # For CI/CD demos where ":latest" changes frequently, Always ensures Kubernetes pulls the newest image.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
