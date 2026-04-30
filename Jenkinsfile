@@ -2,7 +2,10 @@ pipeline {
   agent any
 
   environment {
+    // Target registry repo (must be owned by the DockerHub credentials used below)
     IMAGE_NAME = "soundharya29032002/aceest-fitness"
+    // Local image name used inside the Jenkins build host
+    LOCAL_IMAGE = "aceest-fitness"
     IMAGE_TAG  = "${env.BUILD_NUMBER}"
   }
 
@@ -46,7 +49,7 @@ pipeline {
     stage('Build Docker image') {
       steps {
         sh '''
-          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+          docker build -t ${LOCAL_IMAGE}:${IMAGE_TAG} -t ${LOCAL_IMAGE}:latest .
         '''
       }
     }
@@ -55,7 +58,7 @@ pipeline {
       steps {
         sh '''
           docker rm -f aceest_test || true
-          docker run -d --name aceest_test -e APP_VERSION=${IMAGE_TAG} -e DATABASE_PATH=/tmp/aceest_fitness.db ${IMAGE_NAME}:${IMAGE_TAG}
+          docker run -d --name aceest_test -e APP_VERSION=${IMAGE_TAG} -e DATABASE_PATH=/tmp/aceest_fitness.db ${LOCAL_IMAGE}:${IMAGE_TAG}
 
           # Wait for the app to start, then call /health from inside the container.
           for i in $(seq 1 30); do
@@ -76,6 +79,11 @@ pipeline {
         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_TOKEN')]) {
           sh '''
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+
+            # Push to the configured target repo (IMAGE_NAME).
+            # NOTE: The dockerhub credential must belong to the owner of IMAGE_NAME.
+            docker tag ${LOCAL_IMAGE}:${IMAGE_TAG} ${IMAGE_NAME}:${IMAGE_TAG}
+            docker tag ${LOCAL_IMAGE}:${IMAGE_TAG} ${IMAGE_NAME}:latest
             docker push ${IMAGE_NAME}:${IMAGE_TAG}
             docker push ${IMAGE_NAME}:latest
           '''
