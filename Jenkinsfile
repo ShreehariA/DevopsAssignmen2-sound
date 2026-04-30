@@ -1,6 +1,10 @@
 pipeline {
   agent any
 
+  parameters {
+    booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: false, description: 'If true, run kubectl deploy stage (requires kubectl configured on Jenkins).')
+  }
+
   environment {
     // Target registry repo (must be owned by the DockerHub credentials used below)
     IMAGE_NAME = "soundharya29032002/aceest-fitness"
@@ -92,6 +96,7 @@ pipeline {
     }
 
     stage('Deploy to Kubernetes (rolling)') {
+      when { expression { return params.DEPLOY_TO_K8S } }
       steps {
         sh '''
           kubectl apply -f k8s/namespace.yaml
