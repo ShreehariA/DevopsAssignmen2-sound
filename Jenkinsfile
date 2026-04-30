@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = "your-dockerhub-username/aceest-fitness"
+    IMAGE_NAME = "soundharya29032002/aceest-fitness"
     IMAGE_TAG  = "${env.BUILD_NUMBER}"
   }
 
@@ -43,7 +43,7 @@ pipeline {
     stage('Build Docker image') {
       steps {
         sh '''
-          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
         '''
       }
     }
