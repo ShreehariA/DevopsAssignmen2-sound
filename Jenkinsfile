@@ -55,9 +55,17 @@ pipeline {
       steps {
         sh '''
           docker rm -f aceest_test || true
-          docker run -d --name aceest_test -p 18000:8000 -e APP_VERSION=${IMAGE_TAG} -e DATABASE_PATH=/tmp/aceest_fitness.db ${IMAGE_NAME}:${IMAGE_TAG}
-          sleep 2
-          python3 -c "import json,urllib.request; print(json.load(urllib.request.urlopen('http://127.0.0.1:18000/health')))"
+          docker run -d --name aceest_test -e APP_VERSION=${IMAGE_TAG} -e DATABASE_PATH=/tmp/aceest_fitness.db ${IMAGE_NAME}:${IMAGE_TAG}
+
+          # Wait for the app to start, then call /health from inside the container.
+          for i in $(seq 1 30); do
+            if docker exec aceest_test python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=1).read(); print('ok')" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          docker exec aceest_test python3 -c "import json,urllib.request; print(json.load(urllib.request.urlopen('http://127.0.0.1:8000/health')))"
           docker rm -f aceest_test
         '''
       }
