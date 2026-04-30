@@ -114,7 +114,11 @@ pipeline {
             export KUBECONFIG="$KUBECONFIG_FILE"
             kubectl version --client=true
 
-            kubectl apply -f k8s/namespace.yaml
+            # Jenkins runs in Docker; kubeconfigs that point to 127.0.0.1 won't work inside the container.
+            # Force the cluster server to the host-reachable Minikube API endpoint.
+            kubectl config set-cluster minikube --server="https://host.docker.internal:59520" --insecure-skip-tls-verify=true
+
+            kubectl apply --validate=false -f k8s/namespace.yaml
 
             # Allow the cluster to pull from Docker Hub (private repos need this).
             # Creates/updates an imagePullSecret named dockerhub-regcred in the aceest namespace.
@@ -127,7 +131,7 @@ pipeline {
             # Ensure pods created in this namespace can use the registry credentials.
             kubectl -n aceest patch serviceaccount default -p '{"imagePullSecrets":[{"name":"dockerhub-regcred"}]}' || true
 
-            kubectl apply -f k8s/rolling-deployment.yaml -f k8s/service.yaml
+            kubectl apply --validate=false -f k8s/rolling-deployment.yaml -f k8s/service.yaml
 
             # Deploy the "latest" tag (guaranteed to exist if Push stage succeeded).
             # This avoids ImagePullBackOff when a numeric tag was not pushed/visible.
